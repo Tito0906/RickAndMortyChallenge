@@ -1,17 +1,14 @@
 import requests
 from threading import Thread, Lock
 
+
 # Genera una url para cada cambio de pagina
-
-
 def path_generator(path_element, page_number):
     return path_element + str(page_number)
 
-# Esta función se corre en un thread y sirve para agregar a un diccionario los indices y
-# personajes de cada episodio. La llave es el índice y el valor es una lista con urls de todos
-# los personajes
 
-
+# Esta función se corre en muchos threads y sirve para agregar a un diccionario
+# elementos tipo ["id_del_episodio"] = [lista con url de todos los personajes del episodio]
 def ask_episodes_characters(path, chararacter_urls_in_episode, lock):
     response = requests.get(path)
     page = response.json()
@@ -25,7 +22,7 @@ def ask_episodes_characters(path, chararacter_urls_in_episode, lock):
 # Genera todo el diccionario completo y es el punto desde donde se crean los thread de
 # ask_episodes_characters
 def check_locations_per_episode(path_element):
-    # Generamos el primer path
+    # Generamos el path de la primera página
     path = path_generator(path_element, 1)
 
     # Hacemos el primer llamado
@@ -33,7 +30,6 @@ def check_locations_per_episode(path_element):
 
     # Generamos el primer json
     episodes = response.json()
-    # print(characters)
 
     # creamos el lock
     lock = Lock()
@@ -44,8 +40,8 @@ def check_locations_per_episode(path_element):
     # generamos el diccionario con los threads
     threads = {}
 
-    # En las siguientes líneas se crean los path correspondientes a cada página y se llama
-    # una función mediante threads. La función agrega keys y values de nombres y origin.
+    # En las siguientes líneas se crean los path correspondientes a cada página y se llama ask_episodes_characters
+    # mediante threads. La función agrega keys y values a chararacter_urls_in_episode.
     n = 1
     # se crean tantos threads como páginas
     while n <= episodes["info"]["pages"]:
@@ -69,8 +65,8 @@ def check_locations_per_episode(path_element):
     return chararacter_urls_in_episode
 
 
-# función dirigida a thread. agrega a un diccionario común los url de cada personaje (como llaves)
-# y los valores son el lugar de origen de cada personaje
+# Función dirigida a thread. Agrega a un diccionario tipo ["url_personaje"] = origen_personaje
+# desde cada página de personajes.
 def ask_characters_url(path, dicc_urls_origins, lock):
     response = requests.get(path)
     page = response.json()
@@ -81,10 +77,10 @@ def ask_characters_url(path, dicc_urls_origins, lock):
         lock.release()
 
 
-# Función desde donde se originan lo thread anteriores y donde se genera
-# el diccionario común
+# Función desde donde se originan los thread anteriores y donde se genera
+# el diccionario común tipo ["url_personaje"] = origen_personaje
 def check_ulrs_and_origins(path_element):
-    # Generamos el primer path
+    # Generamos el primer path de la primera página
     path = path_generator(path_element, 1)
 
     # Hacemos el primer llamado
@@ -103,7 +99,7 @@ def check_ulrs_and_origins(path_element):
     # generamos el diccionario con los threads
     threads = {}
 
-    # En las siguientes líneas se crean los path correspondientes a cada página y se llama
+    # En las siguientes líneas se crean los path correspondientes a cada página de lo chacters y se llama
     # una función mediante threads. La función agrega keys y values de nombres y origin.
     n = 1
     # se crean tantos threads como páginas
@@ -135,7 +131,7 @@ def check_ulrs_and_origins(path_element):
 
 # Función que reemplaza del diccinario tipo ["indice_episodio"] = [lista_de_urls], El valor de cada url
 # por el valor de origen del personaje que representa esa url
-# Para esto se ua otro diccionario tipo ["url_de_un_personaje"] = [origen_del_personaje]
+# Para esto se usa otro diccionario tipo ["url_de_un_personaje"] = [origen_del_personaje]
 def replace_urls_for_origin(chararacter_urls_in_episode, dicc_urls_origins):
     for episode in chararacter_urls_in_episode.keys():
         for i in range(0, len(chararacter_urls_in_episode[episode])):
